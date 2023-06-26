@@ -1,15 +1,15 @@
 mod exec;
 mod parse;
+mod terminal;
 
 use exec::ExecContext;
 use std::io::Write;
 
-use crate::parse::parse;
+use parse::parse;
+use terminal::setup;
 
 fn main() {
-    // let ast = parse("foo=bar\nbaz=$foo\nbingo=${ baz }\nif foo:\n  ls\n\n      \n\t\n\n  pwd\npwd")
-    // .unwrap();
-    // println!("{:?}", ast);
+    setup();
     let mut context = ExecContext::new();
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
