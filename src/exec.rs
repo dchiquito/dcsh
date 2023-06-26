@@ -1,12 +1,14 @@
 use lazy_static::lazy_static;
 use regex::{Captures, Regex};
 use std::collections::HashMap;
+use std::process::Command;
 
 use crate::parse::Statement;
 
 lazy_static! {
     static ref RE_SIMPLE_VARIABLE: Regex = Regex::new(r"\$([a-zA-Z0-9]+)").unwrap();
     static ref RE_BRACED_VARIABLE: Regex = Regex::new(r"\$\{[ \t]*([a-zA-Z0-9]+)[ \t]*\}").unwrap();
+    static ref RE_SPACE_SEPERATOR: Regex = Regex::new(r"[ \t]+").unwrap();
 }
 #[derive(Debug)]
 pub struct ExecContext {
@@ -37,7 +39,13 @@ impl ExecContext {
             .insert(variable, self.perform_substitution(&expression));
     }
     fn exec_command(&mut self, command: String) {
-        println!("EXECUTE {}", command);
+        let mut chunks = RE_SPACE_SEPERATOR.split(&command);
+        let executable = self.perform_substitution(chunks.next().expect("no command specified"));
+        let args = chunks.map(|chunk| self.perform_substitution(chunk));
+        let status = Command::new(executable)
+            .args(args)
+            .status()
+            .expect("failed to execute command");
     }
     fn exec_if(
         &mut self,
