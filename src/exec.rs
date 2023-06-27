@@ -1,7 +1,6 @@
 use lazy_static::lazy_static;
 use regex::{Captures, Regex};
 use std::collections::HashMap;
-use std::process::Command;
 
 use crate::parse::Statement;
 
@@ -34,18 +33,12 @@ impl ExecContext {
             }
         }
     }
-    fn exec_assignment(&mut self, variable: String, expression: String) {
+    pub fn exec_assignment(&mut self, variable: String, expression: String) {
         self.strings
             .insert(variable, self.perform_substitution(&expression));
     }
     fn exec_command(&mut self, command: String) {
-        let mut chunks = RE_SPACE_SEPERATOR.split(&command);
-        let executable = self.perform_substitution(chunks.next().expect("no command specified"));
-        let args = chunks.map(|chunk| self.perform_substitution(chunk));
-        let status = Command::new(executable)
-            .args(args)
-            .status()
-            .expect("failed to execute command");
+        crate::command::exec_command(self, &command);
     }
     fn exec_if(
         &mut self,
@@ -55,7 +48,7 @@ impl ExecContext {
     ) {
         println!("IFFY {} {:?} {:?}", conditional, if_block, else_block);
     }
-    fn perform_substitution(&self, source: &str) -> String {
+    pub fn perform_substitution(&self, source: &str) -> String {
         let empty = "".to_string();
         let simple_vars = RE_SIMPLE_VARIABLE.replace_all(source, |caps: &Captures| {
             self.strings.get(&caps[1]).unwrap_or(&empty)

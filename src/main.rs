@@ -1,3 +1,4 @@
+mod command;
 mod exec;
 mod parse;
 mod terminal;
