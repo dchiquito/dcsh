@@ -1,6 +1,7 @@
 use logos::{Lexer, Logos};
 use std::{
     fs::File,
+    io::ErrorKind,
     process::{ChildStdout, Command, Stdio},
 };
 
@@ -96,9 +97,12 @@ enum InvocationChain {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+// TODO rename
 pub enum SyntaxError {
     ExpectedString,
     InvalidSyntax,
+    CommandNotFound(String),
+    IOError,
 }
 
 fn parse_string(
@@ -173,6 +177,16 @@ fn parse_command(
     Ok(invocations)
 }
 
+fn handle_err<T>(invocation: Invocation, r: std::io::Result<T>) -> Result<T, SyntaxError> {
+    r.map_err(|err| {
+        if err.kind() == ErrorKind::NotFound {
+            SyntaxError::CommandNotFound(invocation.executable)
+        } else {
+            SyntaxError::IOError
+        }
+    })
+}
+
 pub fn exec_command(context: &ExecContext, command: &str) -> Result<i32, SyntaxError> {
     let invocations = parse_command(context, command)?;
     let mut previous_stdout: Option<ChildStdout> = None;
@@ -186,31 +200,27 @@ pub fn exec_command(context: &ExecContext, command: &str) -> Result<i32, SyntaxE
         // TODO join < and piped stdin
         match chain {
             Some(InvocationChain::And) => {
-                let status = command.status().expect("failed to spawn process");
+                let status = handle_err(invocation, command.status())?;
                 if !status.success() {
                     return Ok(status.code().unwrap());
                 }
             }
             Some(InvocationChain::Or) => {
-                let status = command.status().expect("failed to spawn process");
+                let status = handle_err(invocation, command.status())?;
                 if status.success() {
                     return Ok(status.code().unwrap());
                 }
             }
             Some(InvocationChain::Pipe) => {
                 command.stdout(Stdio::piped());
-                let child = command.spawn().expect("failed to spawn process");
+                let child = handle_err(invocation, command.spawn())?;
                 previous_stdout = child.stdout;
             }
             Some(InvocationChain::Semicolon) => {
                 command.status().expect("failed to spawn process");
             }
             None => {
-                return Ok(command
-                    .status()
-                    .expect("failed to spawn process")
-                    .code()
-                    .unwrap());
+                return Ok(handle_err(invocation, command.status())?.code().unwrap());
             }
         }
     }

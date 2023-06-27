@@ -2,7 +2,7 @@ use lazy_static::lazy_static;
 use regex::{Captures, Regex};
 use std::collections::HashMap;
 
-use crate::parse::Statement;
+use crate::{command::SyntaxError, parse::Statement};
 
 lazy_static! {
     static ref RE_SIMPLE_VARIABLE: Regex = Regex::new(r"\$([a-zA-Z0-9]+)").unwrap();
@@ -38,7 +38,13 @@ impl ExecContext {
             .insert(variable, self.perform_substitution(&expression));
     }
     fn exec_command(&mut self, command: String) {
-        crate::command::exec_command(self, &command).expect("error executing command");
+        match crate::command::exec_command(self, &command) {
+            Err(SyntaxError::CommandNotFound(command)) => {
+                eprintln!("dcsh: command not found: {}", command)
+            }
+            Err(_) => eprintln!("dcsh: unknown error"),
+            Ok(_) => {}
+        }
     }
     fn exec_if(
         &mut self,
