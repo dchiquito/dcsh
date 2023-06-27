@@ -13,7 +13,11 @@ pub fn setup() -> crossterm::Result<()> {
     //     termion::clear::All,
     //     termion::cursor::Goto(1, height),
     // );
-    execute!(stdout(), terminal::Clear(terminal::ClearType::Purge))?;
+    execute!(
+        stdout(),
+        terminal::Clear(terminal::ClearType::All),
+        terminal::Clear(terminal::ClearType::Purge)
+    )?;
     terminal::enable_raw_mode()?;
     Ok(())
 }
@@ -31,6 +35,12 @@ impl Prompt {
     fn new() -> Prompt {
         Prompt {
             left: VecDeque::new(),
+            right: VecDeque::new(),
+        }
+    }
+    fn from_history(source: &str) -> Prompt {
+        Prompt {
+            left: source.chars().collect(),
             right: VecDeque::new(),
         }
     }
@@ -73,9 +83,42 @@ impl Prompt {
     }
 }
 
+struct History {
+    commands: Vec<String>,
+    cursor: usize,
+}
+impl History {
+    fn new() -> History {
+        History {
+            commands: vec![],
+            cursor: 0,
+        }
+    }
+    fn push(&mut self, command: String) {
+        self.commands.push(command);
+        self.cursor = self.commands.len();
+    }
+    fn up(&mut self) -> &str {
+        if self.cursor > 0 {
+            self.cursor -= 1;
+        }
+        &self.commands[self.cursor]
+    }
+    fn down(&mut self) -> &str {
+        if self.cursor < self.commands.len() {
+            self.cursor += 1;
+        }
+        if self.cursor == self.commands.len() {
+            ""
+        } else {
+            &self.commands[self.cursor]
+        }
+    }
+}
+
 pub fn event_loop(context: &mut ExecContext) -> crossterm::Result<()> {
     let mut out = stdout();
-    // let mut history: Vec<String> = vec![];
+    let mut history = History::new();
     let mut prompt = Prompt::new();
     prompt.render(&mut out)?;
     loop {
@@ -83,7 +126,7 @@ pub fn event_loop(context: &mut ExecContext) -> crossterm::Result<()> {
             // println!("{:?}", event);
             if event.modifiers.contains(KeyModifiers::CONTROL) {
                 match event.code {
-                    KeyCode::Char('c') => {
+                    KeyCode::Char('d') => {
                         break;
                     }
                     _ => {}
@@ -93,16 +136,20 @@ pub fn event_loop(context: &mut ExecContext) -> crossterm::Result<()> {
                     KeyCode::Char(c) => prompt.add_char(c),
                     KeyCode::Left => prompt.move_left_one(),
                     KeyCode::Right => prompt.move_right_one(),
+                    KeyCode::Up => prompt = Prompt::from_history(history.up()),
+                    KeyCode::Down => prompt = Prompt::from_history(history.down()),
                     KeyCode::Backspace => prompt.backspace_one(),
                     KeyCode::Delete => prompt.delete_one(),
                     KeyCode::Enter => {
                         terminal::disable_raw_mode()?;
                         println!();
-                        if let Some(ast) = parse(&prompt.build()) {
+                        let command = prompt.build();
+                        if let Some(ast) = parse(&command) {
                             context.execute(ast);
                         } else {
                             println!("Invalid syntax");
                         }
+                        history.push(command);
                         terminal::enable_raw_mode()?;
                         prompt = Prompt::new();
                     }
