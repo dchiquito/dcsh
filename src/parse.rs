@@ -83,7 +83,7 @@ fn parse_command(source: &str) -> Option<(Statement, &str)> {
     }
 }
 
-fn parse_if<'a>(source: &'a str, indentation: &'a str) -> Option<(Statement, &'a str)> {
+fn parse_if<'a>(source: &'a str, _indentation: &'a str) -> Option<(Statement, &'a str)> {
     if let Some(captures) = RE_IF.captures(source) {
         let condition = captures.get(1).unwrap().as_str().to_string();
         let remainder = &source[captures.get(0).unwrap().len()..source.len()];
@@ -93,9 +93,9 @@ fn parse_if<'a>(source: &'a str, indentation: &'a str) -> Option<(Statement, &'a
         if if_code.is_empty() {
             return None;
         }
-        if let Some(captures) = RE_ELIF.captures(remainder) {
+        if let Some(_captures) = RE_ELIF.captures(remainder) {
             // TODO elif
-        } else if let Some(captures) = RE_ELSE.captures(remainder) {
+        } else if let Some(_captures) = RE_ELSE.captures(remainder) {
             // TODO else
         }
         let else_code = vec![];

@@ -38,7 +38,7 @@ impl ExecContext {
             .insert(variable, self.perform_substitution(&expression));
     }
     fn exec_command(&mut self, command: String) {
-        crate::command::exec_command(self, &command);
+        crate::command::exec_command(self, &command).expect("error executing command");
     }
     fn exec_if(
         &mut self,

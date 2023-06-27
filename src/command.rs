@@ -48,18 +48,22 @@ impl Invocation {
             stderr_file: None,
         }
     }
+    #[allow(dead_code)]
     fn arg(mut self, arg: &str) -> Invocation {
         self.args.push(arg.to_string());
         self
     }
+    #[allow(dead_code)]
     fn input_file(mut self, input_file: &str) -> Invocation {
         self.input_file = Some(input_file.to_string());
         self
     }
+    #[allow(dead_code)]
     fn output_file(mut self, output_file: &str) -> Invocation {
         self.output_file = Some(output_file.to_string());
         self
     }
+    #[allow(dead_code)]
     fn stderr_file(mut self, stderr_file: &str) -> Invocation {
         self.stderr_file = Some(stderr_file.to_string());
         self
@@ -172,7 +176,6 @@ fn parse_command(
 pub fn exec_command(context: &ExecContext, command: &str) -> Result<i32, SyntaxError> {
     let invocations = parse_command(context, command)?;
     let mut previous_stdout: Option<ChildStdout> = None;
-    let mut status: i32 = 0;
     for (invocation, chain) in invocations {
         let mut command = invocation.command();
         if let Some(stdout) = previous_stdout {
