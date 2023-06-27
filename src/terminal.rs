@@ -1,4 +1,4 @@
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{Event, KeyCode, KeyModifiers};
 use crossterm::{cursor, event, execute, terminal, QueueableCommand};
 use std::collections::VecDeque;
 use std::io::{stdout, Stdout, Write};
